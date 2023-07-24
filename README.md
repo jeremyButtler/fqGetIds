@@ -25,7 +25,11 @@ This program is dual licensed under the MIT (primary) or
 sudo make sse
 make install
 
-# No vector (scalar) support
+# NEON 128 bit vector support (arm cpus)
+make neon
+sudo make install
+
+# No vector (scalar) support (any machine)
 make
 sudo make install
 
@@ -41,14 +45,6 @@ sudo make install
 # fqGetIds, it likely means that your cpu does not support
 # the SIMD instructions you compiled fqGetIds for.
 # This is most likely to happend with AVX512.
-
-# NEON 128 bit vector support (arm cpus)
-make neon
-sudo make install
-
-# NEON 64 bit vector support (128 bit is better)
-make neon64
-sudo make install
 ```
 
 # Running fqGetIds
