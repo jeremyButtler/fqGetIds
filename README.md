@@ -7,9 +7,6 @@ FqGetIds extracts reads from a fastq file by input read
   without vector support is slower than seqkit. FqGetIds
   also requires more ram than seqkit.
 
-I still need to benchmark to see how vector support
-  compares seqkit in speed.
-
 The reason why I am posting fqGetIds is to see if anyone
   can find a use for any elements of the code.
 
@@ -20,12 +17,13 @@ This program is dual licensed under the MIT (primary) or
 # Building fqGetIds
 
 ```
-# 128 bit vector support
-# should work on most if not all computers
+# 128 bit vector support (intel/AMD). Should work on most
+# computers
 sudo make sse
 make install
 
-# NEON 128 bit vector support (arm cpus)
+# NEON 128 bit vector support (arm cpus). Smart phones and
+# the less powerfull tablets
 make neon
 sudo make install
 
@@ -33,11 +31,13 @@ sudo make install
 make
 sudo make install
 
-# 256 bit vector support
+# 256 bit vector support (It is likley your cpu will
+# support this if it supports SSE2)
 make avx2
 sudo make install
 
-# 512 bit vector support
+# 512 bit vector support (Newer intel cpus, not likely
+# supported)
 make avx512
 sudo make install
 
@@ -169,13 +169,18 @@ The faster times for FqGetIds when extracting a few reads
 We also saw the fqGetIds was using less cpu
   (see analysis/fqGetIds-cpu.svg) when extracting over 50%
   of reads. This combined with the unpredictable times
-  suggests that file IO in output might be the limiting
-  factor.
+  suggests that when extracting 100% of reads, that the
+  file IO in output was the limiting factor.
 
 The multithreading employed by seqkit had little impact
   on times until 50% of reads were extracted. However,
   this gain became unpredictable when extracting 100% of
   reads. This was likely due to file IO issues.
+
+That being said, we only tested up to four million reads.
+  It is possible that seqkit might start to out perform
+  fqGetIds with vector support when read depths get
+  greater.
 
 ![Elapsed time usage to extract reads from a fastq from
   Illumina sequencing for fqGetIds and seqkit. fqGetIds
