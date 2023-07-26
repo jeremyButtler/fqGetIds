@@ -90,7 +90,123 @@ fqGetIds -h | less
 
 # Graphs
 
-I will add a comparison to seqkit version 2.3 here soon.
+## Testing
+
+The Nanopore data set is a combination of several fastq
+  files that were combined together to get six million
+  reads. These files are not available, but were from
+  sequencing 700 base long amplicons from porcine
+  circovirus type 2. The Illumina file was the fastq file
+  used to benchmark seqkit, check seqkits github page
+  [https://bioinf.shenwei.me/seqkit/benchmark/#dataset_cfq-illumina-single-end-reads-se100](
+   https://bioinf.shenwei.me/seqkit/benchmark/#dataset_cfq-illumina-single-end-reads-se100)
+  to download a .gz file with their testing data. I used
+  data set C. I should note their benchmarks are for a much
+  older version of seqkit, not seqkit version 2.3.0, which
+  was tested here.
+
+We extracted 75% of the reads in the fastq file using
+  sampleReads.awk in analysis. For testing we used
+  fqGetIds `make benchmark` and seqkit version 2.3.0.
+  We then benchmarked each program using a bash script
+  (see code block beneath) that extracted 0.1%, 1%, 10%,
+  22.5%, 35%, 50%, 75%, and 100% of reads. The read id's
+  to extract were selected evenly across the fastq file
+  using sampleReadIds.awk in analysis. To reduce the affect
+  of the cache on times we ran fqGetIds once and seqkit
+  twice before recording times. Time, memory usage, and
+  cpu usage were recorded using gnu time (/usr/bin/time)
+  -f "%e\t%M\t%P".
+
+```
+# Extract 75% of reads in file. This script evenly extracts
+# reads across the file.
+awk \
+    -f analysis/sampleReads.awk \
+    -v numReadsToKeepI="$(((75 * readsInFastq) / 100))" \
+    -v readsInFastqI="$readsInFastq" \
+    -v prefixStr="prefix";
+
+# Benchmarking commands. Time recording is build in.
+bash analysis/bench-fqGetIds-seqkit-onCache.sh \
+  NanoporeFile.fastq \
+  5 \
+  0; # 0 means each fastq entry is four lines
+
+bash analysis/bench-fqGetIds-seqkit-onCache.sh \
+  IlluminaFile.fastq \
+  5 \
+  1; #  1 means each fastq entry is six lines
+ ```
+
+## Figures
+
+![Elapsed time usage to extract reads from a fastq from
+  nanopore sequencing for fqGetIds and seqkit. FqGetIds
+  in scalar is slower than seqkit, but fqGetIds with
+  vector support is faster.](
+  analysis/fqGetIds-nano-time.svg)
+
+### Figure one: Nanopore read times
+
+Figure one is showing the time it took to extract 0.1%, 1%,
+  10%, 25%, 50%, 75%, and 100% of reads from a Nanopore
+  fastq file having four million reads. We can see that
+  seqkit 2.3 is doing better than the scalar form of
+  fqGetIds, but is not doing as well as the vector complied
+  fqGetIds till over 50% of reads are extracted. However,
+  the scalar form of fqGetIds is faster than seqkit when
+  only a few reads need to be extracted. 
+
+The faster times for FqGetIds when extracting a few reads
+  and faster times for vector support suggests that the
+  slowness of fqGetIds is from its hash/AVL tree algorithm.
+  It is likely that fqGetIds with vector support can
+  process the fastq file faster than seqkit, which would
+  explain why fqGetIds is faster when extracting fewer
+  reads.
+
+We also saw the fqGetIds was using less cpu
+  (see analysis/fqGetIds-cpu.svg) when extracting over 50%
+  of reads. This combined with the unpredictable times
+  suggests that file IO in output might be the limiting
+  factor.
+
+The multithreading employed by seqkit had little impact
+  on times until 50% of reads were extracted. However,
+  this gain became unpredictable when extracting 100% of
+  reads. This was likely due to file IO issues.
+
+![Elapsed time usage to extract reads from a fastq from
+  Illumina sequencing for fqGetIds and seqkit. fqGetIds
+  scalar is always slower than Illumina, while vector
+  support is only as fast as seqkit with one thread.](
+  analysis/fqGetIds-Ill-time.svg)
+
+### Figure 2: Illumina times
+
+Figure two is showing the time it took to extract 0.1%, 1%,
+  10%, 25%, 50%, 75%, and 100% of reads from an Illumina
+  fastq file having six million reads. Our best times were
+  from seqkit with seven threads, followed by seqkit with
+  three threads, then fqGetIds with vector support or
+  seqkit with one thread, and finally scalar fqGetIds was
+  the slowest.  This shows that seqkit is faster than
+  fqGetIds for Illumina fastq files.
+
+For cpu usage (analysis/fqGetIds-cpu.svg) we found that
+  all programs were using at least 100% of the cpu, while
+  seqkit with seven threads was using of 150% of the cpu. 
+
+![Memory usage of fqGetIds and seqkit. fqGetId uses more
+  memory than seqkit](
+  analysis/fqGetIds-memory.svg)
+
+### Figure 3: memory usage
+
+Figure three is showing the memory usage for the Illumina
+  tests and Nanopore tests. We can see in all cases that
+  seqkit is using less memory than fqGetIds.
 
 # How fqGetIds works
 
@@ -128,10 +244,9 @@ An AVL tree is used to handle collisions in the hash table.
 I suspect the difference in times between fqGetIds and
   seqkit are due to my AVL tree hash combination being
   slower than seqkit's hashing. I also know that Illumina
-  read id's barely fill three third limbs, which results in
-  the difference in memory usage between fqGetIds and
-  seqkit being larger for Illumina read ids than Nanopore
-  read ids.
+  read id's barely fill four limbs. I could reduce this
+  to three limbs for Illumina by only recording 0-9, a-f,
+  and :.
 
 # Vector support
 
