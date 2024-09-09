@@ -1,4 +1,4 @@
-N#ote
+#Note
 
 No longer mainting this repository. See bioTools/seqById
   for more updated code. Here because the newer version has
