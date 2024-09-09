@@ -1,3 +1,12 @@
+N#ote
+
+No longer mainting this repository. See bioTools/seqById
+  for more updated code. Here because the newer version has
+  has hanged a lot. Newer version is better for memory usage.
+
+[https://github.com/jeremybuttler/bioTools/seqById](
+  https://github.com/jeremybuttler/bioTools/seqById)
+
 # Use
 
 FqGetIds extracts reads from a fastq file by input read
